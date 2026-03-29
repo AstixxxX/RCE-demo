@@ -16,4 +16,4 @@ COPY /app/* .
 
 RUN chmod +x /app/*
 
-CMD ["./rce-server.py"]
+CMD ["./rce-server.py", "0.0.0.0", "8080"]
