@@ -13,7 +13,7 @@ This project provides a complete sandbox environment for:
 The demo consists of two main components:
 1. **Vulnerable Web Server** - A Python Flask application with intentional command injection vulnerability
 2. **eBPF Sensor** - A kernel-level program that hooks `execve` and `connect` system calls to detect suspicious behavior
-   **Attacker** - on your wish
+(*)**Attacker** - on your wish
    
 ## Installation
 
