@@ -23,7 +23,7 @@ The demo consists of two main components:
 git clone https://github.com/Astixxx/RCE-demo.git
 cd RCE-demo
 
-# Run the eBPF-sensor on host machine
+# Run the eBPF-sensor on server host machine
 sudo ./sensor.bt
 
 # Build the vulnerable container
