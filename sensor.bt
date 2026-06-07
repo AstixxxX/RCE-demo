@@ -1,0 +1,116 @@
+#!/usr/bin/env bpftrace
+
+BEGIN {
+    printf("=== RCE Sensor started (monitor PID: %d) ===\n", pid);
+    printf("Monitoring: execve, connect, openat, write, fork\n\n");
+
+    // Shells
+    @shell["/bin/sh"] = 1;
+    @shell["/bin/bash"] = 1;
+    @shell["/bin/dash"] = 1;
+    @shell["/bin/zsh"] = 1;
+    
+    // Web-services
+    @webproc["python3"] = 1;
+    @webproc["python"] = 1;
+    @webproc["gunicorn"] = 1;
+    @webproc["uwsgi"] = 1;
+    @webproc["nginx"] = 1;
+    @webproc["apache2"] = 1;
+    @webproc["httpd"] = 1;
+    @webproc["node"] = 1;
+    @webproc["java"] = 1;
+    @webproc["ruby"] = 1;
+    
+    // Sensitive files
+    @sensitive["/etc/passwd"] = 1;
+    @sensitive["/etc/shadow"] = 1;
+    @sensitive["/root/.ssh/id_rsa"] = 1;
+    @sensitive["/proc/self/mem"] = 1;
+    @sensitive["/var/run/docker.sock"] = 1;
+    
+    // Approved destination ports for outbound connection
+    @portok[53] = 1;
+    @portok[80] = 1;
+    @portok[443] = 1;
+}
+
+tracepoint:syscalls:sys_enter_execve {
+    $pcomm = comm;
+    $ppid = curtask->real_parent->pid;
+    $fname = str(args->filename);
+    
+    if (@shell[$fname] && @webproc[$pcomm]) {
+        @suspicious_pid[pid] = 1;
+        printf("[WARN] SHELL_FROM_WEBPROCESS\n");
+        printf("    pid=%-6d comm=%-16s\n", pid, $pcomm);
+        printf("    ATT&CK: T1059.004 (Unix Shell)\n\n");
+    }
+    
+    if (@suspicious_pid[$ppid]) {
+        @suspicious_pid[pid] = 1;
+    }
+}
+
+tracepoint:syscalls:sys_enter_connect {
+    $sa_fam = *(uint16 *)args->uservaddr;
+    
+    if ($sa_fam == 2) {
+        $dport = (uint16)((*(uint16 *)(args->uservaddr + 2) >> 8) | (*(uint16 *)(args->uservaddr + 2) << 8));
+        
+        if (@suspicious_pid[pid] && !@portok[$dport]) {
+            printf("[ALERT] REVERSE_SHELL_DETECTED\n");
+            printf("    pid=%-6d comm=%-16s\n", pid, comm);
+            printf("    ATT&CK: T1071.001 (Web Protocol)\n\n");
+        }
+        
+        if (@shell[comm] && !@portok[$dport]) {
+            printf("[ALERT] SHELL_OUTBOUND_CONNECT\n");
+            printf("    pid=%-6d comm=%-16s\n", pid, comm);
+            printf("    ATT&CK: T1059.004\n\n");
+        }
+    }
+}
+
+kprobe:security_file_open {
+    $file = (struct file *)arg0;
+    $path = str($file->f_path.dentry->d_name.name);
+    
+    if (@sensitive[$path] && (@shell[comm] || @suspicious_pid[pid])) {
+        printf("[ALERT] SENSITIVE_FILE_ACCESS\n");
+        printf("    pid=%-6d comm=%-16s file=%s\n", pid, comm, $path);
+        printf("    uid=%-6d ATT&CK: T1083 (File Discovery)\n\n", uid);
+    }
+}
+
+tracepoint:syscalls:sys_enter_write {
+    if ((@shell[comm] || @suspicious_pid[pid]) && args->fd > 2) {
+        printf("[ALERT] SHELL_WRITE_TO_FD\n");
+        printf("    pid=%-6d comm=%-16s fd=%d count=%d\n", pid, comm, args->fd, (int32)args->count);
+    }
+}
+
+tracepoint:sched:sched_process_fork {
+    if (@suspicious_pid[args->parent_pid]) {
+        @suspicious_pid[args->child_pid] = 1;
+        @sus_time[args->child_pid] = elapsed;
+    }
+    @pcomm[args->child_pid] = comm;
+}
+
+tracepoint:sched:sched_process_exit {
+    delete(@suspicious_pid[pid]);
+    delete(@sus_time[pid]);
+    delete(@pcomm[pid]);
+}
+
+END {
+    printf("\n=== RCE Sensor stopped ===\n");
+    clear(@shell);
+    clear(@webproc);
+    clear(@sensitive);
+    clear(@portok);
+    clear(@suspicious_pid);
+    clear(@sus_time);
+    clear(@pcomm);
+}
