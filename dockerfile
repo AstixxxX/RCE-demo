@@ -1,19 +1,12 @@
-FROM kalilinux/kali-rolling
-
+FROM ubuntu:22.04
+# Install nc packet for demo. Do not install in real projects unnesesary packeges!!!
 RUN apt update && apt install -y \
-    python3 \
-    python3-flask \
-    bpftrace \
-    netcat-traditional \
-    procps \
-    curl \
-    iproute2 \
-    && rm -rf /var/lib/apt/lists/*
-    
+python3 \
+python3-flask \
+netcat-traditional \
+&& rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
-COPY /app/* .
+COPY ./app /app
 
 RUN chmod +x /app/*
-
-CMD ["./rce-server.py", "0.0.0.0", "8080"]
