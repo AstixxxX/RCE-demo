@@ -29,7 +29,7 @@ sudo ./sensor.bt
 # Build the vulnerable container
 docker build -t rce-vuln-app .
 
-# Run the container (Run only in isolation scope!!!)
+# Run the container (Run only in trust local network!)
 docker run -d --rm \
   --name rce-auth-server \
   -p 5000:5000 \  # Web port for our web-server
