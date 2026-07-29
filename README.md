@@ -10,7 +10,7 @@ This project provides a complete sandbox environment for:
 - Implementing behavior-based detection (IoB) for malicious activities
 - Observing how system calls can be monitored at the kernel level
 
-The demo consists of two main components:
+The demo consists of three main components:
 1. **Vulnerable Web Server** - A Python Flask application with intentional command injection vulnerability
 2. **eBPF Sensor** - A kernel-level program that hooks `execve` and `connect` system calls to detect suspicious behavior
 3. **Attacker** - Intruder who has access to our infrastructure
